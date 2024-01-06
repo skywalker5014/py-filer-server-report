@@ -1,0 +1,45 @@
+img{
+    max-width: 100%;
+    min-width: 300px;
+    height: auto;
+    object-fit:cover;
+}
+
+body{
+    padding-left: 25px;
+    padding-right: 25px;
+    background-color: rgb(34, 32, 32);
+    color: rgb(255, 255, 255);
+}
+
+.Infobox{
+    display: grid;
+    border: 1px solid rgb(132, 97, 8);
+    padding: 15px;
+    margin: 7px;
+    justify-items: center;
+}
+
+p{
+    text-align: justify;
+}
+
+video{
+    max-width: 100%;
+    min-width: 300px;
+}
+
+#doc{
+    padding: 2px;
+    margin: 0px;
+}
+
+@media (max-width: 1200px){
+    .Infobox{
+        padding: none;
+        margin: none;
+        /* display: inline; */
+        /* border: none; */
+    }
+}
+

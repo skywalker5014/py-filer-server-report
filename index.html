@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="assets/style.css">
+    <title>File server project development report</title>
+</head>
+<body>
+    <h2>Project architecture</h2>
+
+    <div class="Infobox">
+        <img src="assets\fileserverdemo.gif" alt="">
+        <div>demo video</div>
+    </div>
+
+    <div class="Infobox">
+        <img id="fullImg" src="assets\application_architecture.png" alt="">
+        <div>full project architectural model</div>
+    </div>
+
+    <div class="Infobox">
+
+        <div class="Infobox">
+            <img src="assets\Backend architecture.png" alt="">
+            <div>backend architecture model</div>    
+        </div>
+
+        <br> <br>
+
+        <div>
+            <p>
+                The backend application server is built using the FastAPI web framework integrated with the uvicorn ASGI server.
+                The backend follows a modular monolithic architectural approach with two processes parallely while sharing the same 
+                resources or dependencies since the project is integrated with the monorepo style structure. 
+                <br>
+                The main components of the backend server are: 
+                <ul>
+                    <li>FastAPI/uvicorn application to handle user interaction</li>
+                    <li>Python schedular/CRON job process to handle automated database manipulation</li>
+                </ul>
+                <div>
+                    FastAPI/uvicorn application: <br>
+                    <ol>
+                        <li>
+                            This process handles the direct user requests from the frontend interface using API endpoints defined by
+                            FastAPI web framework.                            
+                        </li>
+                        <li>
+                            there are five services or API's provided for the user to interact with: <br>
+                            <ol>
+                                <li>
+                                    user management / authentication API: <br>
+                                    users can register and login with the application. User authentication is handled using token
+                                    based stateless authentication using the JWT standard. 
+                                </li>
+                                <li>
+                                    file upload API: <br>
+                                    users can upload a raw file or blobs into the server by setting an expiry duration. The backend 
+                                    will handle the automatic deletion of the file uploaded on reaching expiry defined by the user.
+                                </li>
+                                <li>
+                                    uploads view API: <br>
+                                    users can see all of their files they have uploaded (both expired and not expired ones)
+                                    and see all of those files that are uploaded by others which are not yet expired. 
+                                </li>
+                                <li>
+                                    download API: <br>
+                                    users can download any files that are not yet expired. They can choose to download their own
+                                    files or even those not expired files uploaded by other users using a unique code provided by the server. 
+                                </li>
+                                <li>
+                                    delete API: <br>
+                                    users can manually delete their files from the server that they have uploaded before expiry using 
+                                    the unique code provided by the server to the specific file. 
+                                </li>
+                            </ol>
+                        </li>
+                    </ol>
+                </div>
+
+                <div>
+                    <p>
+                        Schedular/CRON process: <br>
+                        this process automatically scans the database every fixed interval to automatically handle the deletion of the
+                        uploaded files from all the users from the server upon reaching the provided expiry time. 
+                        This process only deletes actual raw file from the server while soft deleting the actual metadata of the deleted or 
+                        expired file.
+                    </p>
+                </div>
+
+            </p>
+        </div>
+    </div>
+
+    <div class="Infobox">
+        <div class="Infobox">
+            <img src="assets\py_file_server_ERD.png" alt="">
+            <div>databse ER diagram</div>
+        </div>
+        <br> <br>
+        <div>
+            <p>
+                the database has two table, 1] users 2] user uploads. The backend processes communicate with the database using sqlalchemy orm.<br>
+                <ol>
+                    <li>users table</li>
+                    <div>
+                        this table holds the user data like the username , email and password in hashed form. <br>
+                        Email is set as the primary key for the user entity. 
+                    </div>
+                    <li>user uploads table</li>
+                    <div>
+                        this table holds every records of all the files uploaded by every user. This table is related with the user table 
+                        using the email field as foreign key. This table has fields email, filename, expire time, unique code for the file, 
+                        expiry status. The email is used to know which user is linked to the management of the specific file with the name
+                        stored in the filename. The expiry status is of type boolean, it is used to check the expiry status of the file, 
+                        if it is expired (true) or not (false). 
+                    </div>
+                </ol>
+            </p>
+        </div>
+    </div>
+
+    <div class="Infobox">
+        <div>
+            <p>
+                Docker setup: <br>
+                this project is containerized using docker. Two containers are created to run the project. One for the backend application server
+                and another for the postgresql database system. <br>
+                    here are the step by step containerization method: 
+                    <ul>
+                        <li>creating the image of backend application server using <br> <br><b class="cli">$ docker build -t py_server_image . </b><br> <br>command while in root dir of project with Dockerfile.</li>
+                        <li>creating a custom network inside docker to connect all containers: <br> <br>
+                        <b class="cli">$ docker network create myNet</b> <br> <br>
+                        </li>
+                        <li>
+                            creating a volume block to persist data: <br> <br>
+                            <b class="cli">$ docker volume create myVolume</b> <br> <br>
+                        </li>
+                        <li>creating and running containers of the backend server and database server from their images: <br>
+                
+                                <div class="Infobox" id="doc">
+                                    <p>
+                                        <ol>
+                                            <li>
+                                                database container: <br> <br>
+                                                <b class="cli">$ docker run --name psql -e POSTGRES_PASSWORD=12345678 --network myNet --volume 
+                                                    myVolume:/var/lib/postgresql/data -d postgres 
+                                                </b> <br> <br>
+                                                here the postgres database container is created using the official postgresql docker image as base and 
+                                                this container is named "psql". psql is connected to the myNet custom docker bridge network and all its data
+                                                is dumped into the myVolume storage block for data persistency.
+                                            </li>
+                                            <li>
+                                                server container: <br> <br>
+                                                <b class="cli">$ docker run --name py_file_server --network myNet -d -p 8000:8000
+                                                    -e PORT=8000 
+                                                    -e SECRET_KEY="qwerty123" 
+                                                    -e HOST="0.0.0.0" 
+                                                    -e DATABASE_LINK="postgresql://postgres:12345678@pgsql2:5432/db" 
+                                                    -e TZ=Asia/Kolkata 
+                                                    py_server_image
+                                                </b> <br> <br>
+                                                here the server container is created using the py_server_image as the base and it is named py_file_server.
+                                                All the environment variable is passed to the server container and is also connected to the myNet docker bridge 
+                                                network. Since docker does not run in the same timezone of the host,
+                                                an extra docker specific timezone environment variable "TZ" is also passed to sync the timezone with the host 
+                                                for our cron process to run properly. This server container runs on the dockers's internal virtual tcp port 8000
+                                                and it is mapped to the hosts tcp port 8000 so the frontend can have access to it from the outside.
+                                            </li>
+                                        </ol>
+                                    </p>
+                                </div>
+                
+                        </li>
+                        
+                    </ul>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
